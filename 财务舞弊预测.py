@@ -584,14 +584,19 @@ print(f"✅ 特征列名已保存，共{len(feature_names_list)}个")
 
 
 # ========== 保存SHAP解释器（新增）==========
+# ========== 保存SHAP解释器
 try:
     import shap
-    # 创建SHAP解释器（用100个样本作为背景）
-    background = X_train_smote[:100]  # 取100个样本作为背景
-    explainer = shap.TreeExplainer(best_model, background)
+    print("正在生成SHAP解释器...")
+    
+    # 新版shap的TreeExplainer不需要传background
+    explainer = shap.TreeExplainer(best_model)
     
     # 保存解释器
-    joblib.dump(explainer, os.path.join(current_dir, 'results', 'shap_explainer.pkl'))
-    print(" SHAP解释器已保存")
+    shap_path = os.path.join(current_dir, 'results', 'shap_explainer.pkl')
+    joblib.dump(explainer, shap_path)
+    print(f"✅ SHAP解释器已保存到 {shap_path}")
+    
 except Exception as e:
-    print(f"SHAP保存跳过（可能需要更新shap版本）：{e}")
+    print(f"⚠️ SHAP解释器保存失败：{e}")
+    print("   （不影响模型使用，SHAP功能将不可用）")
