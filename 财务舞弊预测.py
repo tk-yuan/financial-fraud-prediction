@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import joblib
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.tree import DecisionTreeClassifier
@@ -25,7 +26,8 @@ plt.rcParams['font.sans-serif'] = ['SimHei', 'Arial Unicode MS', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # 1. 加载数据
-data = pd.read_csv(r"D:\Desktop\clean_data.csv")
+import os
+data = pd.read_csv(os.path.join('data', 'clean_data.csv'))
 
 print(data.shape)
 # 计算正常和舞弊的数量
@@ -551,3 +553,45 @@ param_config = {
 
 pd.DataFrame([param_config]).to_csv('results/参数配置信息.csv', index=False, encoding='utf-8-sig')
 print(f"   - 所有结果已保存到 results/ 目录")
+
+
+# ========== 保存模型本身（新增）==========
+import joblib
+import os
+
+# 获取当前目录
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 创建results文件夹（如果不存在）
+os.makedirs(os.path.join(current_dir, 'results'), exist_ok=True)
+
+# 1. 找出最佳模型
+best_model_name = results_df.loc[results_df['测试集AUC'].idxmax(), '模型']
+best_model = all_models[best_model_name]
+
+# 2. 保存最佳模型
+joblib.dump(best_model, os.path.join(current_dir, 'results', 'best_model.pkl'))
+print(f"✅ 模型已保存：{best_model_name}")
+
+# 3. 保存标准化器
+joblib.dump(scaler, os.path.join(current_dir, 'results', 'scaler.pkl'))
+print(f"✅ 标准化器已保存")
+
+# 4. 保存特征列名
+feature_names_list = X_train_raw.columns.tolist()
+joblib.dump(feature_names_list, os.path.join(current_dir, 'results', 'feature_names.pkl'))
+print(f"✅ 特征列名已保存，共{len(feature_names_list)}个")
+
+
+# ========== 保存SHAP解释器（新增）==========
+try:
+    import shap
+    # 创建SHAP解释器（用100个样本作为背景）
+    background = X_train_smote[:100]  # 取100个样本作为背景
+    explainer = shap.TreeExplainer(best_model, background)
+    
+    # 保存解释器
+    joblib.dump(explainer, os.path.join(current_dir, 'results', 'shap_explainer.pkl'))
+    print(" SHAP解释器已保存")
+except Exception as e:
+    print(f"SHAP保存跳过（可能需要更新shap版本）：{e}")
